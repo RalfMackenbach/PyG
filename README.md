@@ -6,6 +6,7 @@ Some packages which handle parsing and processing of GIST files so that it is mu
 GIST_functions:
 
 -- The sim object
+
 If one has a GIST txt file ready, simply invoke GIST_functions("GIST.txt") to create an instance of a GIST sim object. 
 Various attributes are added. Please do 
 
