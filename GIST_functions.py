@@ -1,6 +1,7 @@
 import re
-
-
+import numpy as np
+from scipy.interpolate import interp1d
+from scipy.integrate import cumtrapz
 
 
 
@@ -21,6 +22,8 @@ class sim:
     - shat          : shear
     - gridpoints    : Number of gridpoints
     - n_pol         : Number of poloidal turns
+    - z_coord       : z (theta) coordinate of the various functions
+    - l_coord       : The l coordinate of various functions
     - functions     : A matrix of all functions outputted by GIST,
                       columns correspond to a different quantities
     - B             : Array containing magnetic field data,
@@ -123,11 +126,28 @@ class sim:
         pattern_functions  = re.compile(r"""(?<=\/)(?s)(.*$)""",flags=re.MULTILINE|re.DOTALL)
         x = (re.findall(pattern_functions, self.txt_file)[0])
         x_split = x.split('\n ')
+
         l = []
         for item in x_split:
             subl = []
             for num in item.split():
                 subl.append(float(num))
-                l.append(subl)
+            l.append(subl)
+        l_new = list2 = [x for x in l if x != []]
+        self.functions = np.asarray(l_new)
 
-        self.functions = l
+
+        # Create z_coordinate
+        self.z_coord   = np.linspace(-np.pi*self.n_pol,np.pi*self.n_pol,num=self.gridpoints)
+
+        # Create l-coordinates by solving ODE, set up integrand first
+        iota0           = 1/(self.q0)
+        B_of_z          = self.functions[:,3]
+        inv_jac_of_z    = self.functions[:,4]
+        integrand       = np.asarray(iota0*inv_jac_of_z/B_of_z)
+        # Straightforward cumtrapz for integral
+        l_arr           = cumtrapz(integrand,self.z_coord,initial=0)
+        # Set z=0 => l=0
+        l_interp = interp1d(self.z_coord, l_arr,kind='linear')
+        l_offset = l_interp(0)
+        self.l_coord = l_arr - l_offset
