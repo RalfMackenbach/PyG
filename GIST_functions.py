@@ -18,7 +18,7 @@ class sim:
     - major_radius  : Major radius
     - my_dpdx       : Radial pressure gradient
     - q0            : rotational transform
-    - shat          : Not a clue what this is
+    - shat          : shear
     - gridpoints    : Number of gridpoints
     - n_pol         : Number of poloidal turns
     - functions     : A matrix of all functions outputted by GIST,
