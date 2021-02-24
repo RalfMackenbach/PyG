@@ -10,9 +10,9 @@ class sim:
     """
     Class that accesses the GIST data in a more pythonic way.
     Invoke an element of the class as follows:
-    sim = GIST_functions.sim(filename='../GIST.txt')
+    sim = GIST_functions.sim(filename='.../GIST.txt')
     This creates a simulation object. This object various attributes:
-
+    sim.
     - s0            : Normalized psi coordinate
     - alpha0        : Alpha coordinate
     - minor_radius  : Minor radius
@@ -26,7 +26,7 @@ class sim:
     - l_coord       : The l coordinate of various functions
     - functions     : A matrix of all functions outputted by GIST,
                       columns correspond to a different quantities
-    - B             : Array containing magnetic field data,
+    - B_arr         : Array containing magnetic field data,
                       the indexing convention is
                             B[0] = B_ref
                             B[1] = B_00
@@ -34,8 +34,31 @@ class sim:
                             B[3] = B_10
                             B[4] = B_11
                             .....
-    """
 
+    Subclasses:
+    !! Dimensionfull parameters !!
+    After creating a simulation object, one can invoke a subclass
+    with dimensionfull parameters by doing
+    sim_dim = sim.get_dimfull()
+    This subclass has dimfull functions stored as
+    various attributes, which can be accessed by
+    sim_dim.
+    - g_11          : The 11 metric tensor component,
+                      expressed as: (nabla psi) in (nabla psi)
+    - g_12          : The 12 metric tensor component,
+                      expressed as: (nabla psi) in (nabla alpha)
+    - g_22          : The 22 metric tensor component,
+                      expressed as: (nabla alpha) in (nabla alpha)
+    - B             : The magnetic field strength stored in Tesla
+    - inv_jac       : The inverse jacobian expressed as
+                      ((nabla psi) cross (nabla theta)) in (nabla phi)
+    - dBdpsi        : Variation of B along psi
+    - dBdalpha      : Variation of B along alpha
+    - dBdl          : Variation of magnetic field along arclength
+    - l_coord       : arclength coordinates of the various quantities
+    """
+    # Entire init class contains all information in txt file,
+    # only extra is a z-coordinate
     def __init__(self, filename='GIST.txt'):
         """
 
@@ -73,7 +96,7 @@ class sim:
         B_container = [float(i) for i in x_filtered]
 
         # Assign to self
-        self.B = B_container
+        self.B_arr = B_container
 
 
 
@@ -140,14 +163,81 @@ class sim:
         # Create z_coordinate
         self.z_coord   = np.linspace(-np.pi*self.n_pol,np.pi*self.n_pol,num=self.gridpoints)
 
-        # Create l-coordinates by solving ODE, set up integrand first
-        iota0           = 1/(self.q0)
-        B_of_z          = self.functions[:,3]
-        inv_jac_of_z    = self.functions[:,4]
-        integrand       = np.asarray(iota0*inv_jac_of_z/B_of_z)
-        # Straightforward cumtrapz for integral
-        l_arr           = cumtrapz(integrand,self.z_coord,initial=0)
-        # Set z=0 => l=0
-        l_interp = interp1d(self.z_coord, l_arr,kind='linear')
-        l_offset = l_interp(0)
-        self.l_coord = l_arr - l_offset
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # Fetch dimful quantities if requested
+    def get_dimfull(self):
+        return self.dimfull_functions(self)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    class dimfull_functions:
+    # Class with dimensionfull arrays, because I hate nothing more
+    # then converting between units - so let's abstract that away
+    # Needs to be manually updated if columns mapping is changed
+        def __init__(self,sim):
+
+            self.sim = sim
+            # First set up some handy constants
+            Bref             =  sim.B_arr[0]
+            phi_edge         =  Bref * sim.minor_radius**2. / 2.
+            # This cost me some headache - psi = phi/2*pi
+            psi_edge         =  phi_edge / (2.0*np.pi)
+            # calculate (\nabla \psi)**2
+            self.g_11        =  sim.functions[:,0] * 4. * \
+                                sim.s0 * psi_edge**2.0 / (sim.minor_radius**2.)
+            # calculate (\nabla \psi) * (\nabla \alpha)
+            self.g_12        =  sim.functions[:,1] * 2. * sim.q0 * \
+                                psi_edge / (sim.minor_radius**2.)
+            # calculate (\nabla \alpha)**2
+            self.g_22        =  sim.functions[:,2] * sim.q0**2. / \
+                                (sim.minor_radius**2. * sim.s0)
+            # calculate B of z in tesla
+            B_of_z           =  Bref * sim.functions[:,3]
+            self.B           =  B_of_z
+            # calculate inverse Boozer jacobian
+            # (\nabla \psi \cross \nabla theta) \cdot \nabla \varphi
+            inv_jac          =  sim.functions[:,4] * 2. * sim.q0 * psi_edge / (sim.minor_radius**(3.))
+            self.inv_jac     =  inv_jac
+            # calculate dBdpsi
+            self.dBdpsi      =  Bref * sim.functions[:,5] / ( 2 *np.sqrt(sim.s0) * \
+                                psi_edge )
+            # calculate dBdalpha
+            self.dBdalpha    =  Bref * sim.functions[:,6] * np.sqrt(sim.s0)/ sim.q0
+            # calculate dBdarclength
+            self.dBdl        =  Bref * sim.functions[:,7] * inv_jac / \
+                                (sim.q0 * B_of_z)
+
+            # Create l-coordinates by solving ODE, set up integrand first
+            integrand       = np.asarray(inv_jac/(sim.q0*B_of_z))
+            # Straightforward cumtrapz for integral
+            l_arr           = cumtrapz(integrand,sim.z_coord,initial=0)
+            # Set z=0 => l=0
+            l_interp = interp1d(sim.z_coord, l_arr,kind='linear')
+            l_offset = l_interp(0)
+            self.l_coord = l_arr - l_offset
