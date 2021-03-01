@@ -50,7 +50,7 @@ class sim:
     - g_22          : The 22 metric tensor component,
                       expressed as: (nabla alpha) in (nabla alpha)
     - B             : The magnetic field strength stored in Tesla
-    - inv_jac       : The inverse jacobian expressed as
+    - jac           : The jacobian expressed as:
                       ((nabla psi) cross (nabla theta)) in (nabla phi)
     - dBdpsi        : Variation of B along psi
     - dBdalpha      : Variation of B along alpha
@@ -222,19 +222,19 @@ class sim:
             self.B           =  B_of_z
             # calculate inverse Boozer jacobian
             # (\nabla \psi \cross \nabla theta) \cdot \nabla \varphi
-            inv_jac          =  sim.functions[:,4] * 2. * sim.q0 * psi_edge / (sim.minor_radius**(3.))
-            self.inv_jac     =  inv_jac
+            jac              =  sim.functions[:,4] * 2. * sim.q0 * psi_edge / (sim.minor_radius**(3.))
+            self.jac         =  jac
             # calculate dBdpsi
             self.dBdpsi      =  Bref * sim.functions[:,5] / ( 2 *np.sqrt(sim.s0) * \
                                 psi_edge )
             # calculate dBdalpha
             self.dBdalpha    =  Bref * sim.functions[:,6] * np.sqrt(sim.s0)/ sim.q0
             # calculate dBdarclength
-            self.dBdl        =  Bref * sim.functions[:,7] * inv_jac / \
+            self.dBdl        =  Bref * sim.functions[:,7] * jac / \
                                 (sim.q0 * B_of_z)
 
             # Create l-coordinates by solving ODE, set up integrand first
-            integrand       = np.asarray(inv_jac/(sim.q0*B_of_z))
+            integrand       = np.asarray(jac/(sim.q0*B_of_z))
             # Straightforward cumtrapz for integral
             l_arr           = cumtrapz(integrand,sim.z_coord,initial=0)
             # Set z=0 => l=0
