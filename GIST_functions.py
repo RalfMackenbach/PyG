@@ -132,8 +132,8 @@ class sim:
         x = (re.findall(pattern_gridpoints, self.txt_file)[0]).split()
         x = [float(i) for i in x]
 
-        # Assign s-hat to self
-        self.gridpoints = x[0]
+        # Assign gridpoints to self
+        self.gridpoints = int(x[0])
 
 
         # Import n_pol
