@@ -1,15 +1,22 @@
-# PyGIST
-Some packages which handle parsing and processing of GIST files so that it is much more pythonic and easy to work with.
+# PyG
+Some packages which handle parsing and processing of GIST/GENE files so that it is much more pythonic and easy to work with.
 
 
 
-GIST_functions:
+Functions:
 
--- The sim object
+-- The GIST sim object
 
-If one has a GIST txt file ready, simply invoke GIST_functions("GIST.txt") to create an instance of a GIST sim object. 
-Various attributes are added. Please do 
+If one has a GIST txt file ready, simply invoke G_functions.gist_sim("GIST.txt") to create an instance of a GIST class. 
+Various attributes are added. Documentation included via:
 
-  help(GIST_functions.sim)
+  help(GIST_functions.gist_sim())
   
-to see what attributes are defined.
+  
+
+-- The GENE nrg object 
+
+If one has a nrg txt file ready, simply invoke G_functions.GENE_nrg("GIST.txt") to create an instance of a nrg class. 
+Various attributes are added. Documentation included via:
+
+  help(GIST_functions.GENE_nrg())
