@@ -235,15 +235,13 @@ class gist_sim:
                                 (sim.q0 * B_of_z)
 
             # Create l-coordinates by solving ODE, set up integrand first
-            integrand       = np.asarray(jac/(sim.q0*B_of_z))
+            integrand       = np.asarray((sim.q0*B_of_z)/jac)
             # Straightforward cumtrapz for integral
             l_arr           = cumtrapz(integrand,sim.z_coord,initial=0)
             # Set z=0 => l=0
             l_interp = interp1d(sim.z_coord, l_arr,kind='linear')
             l_offset = l_interp(0)
             self.l_coord = l_arr - l_offset
-
-            self.dxdpsi  = 1.0/(2.0*np.sqrt(sim.s0)) * 4.0 * np.pi / ( Bref * sim.minor_radius**2.0 )
 
 
 
