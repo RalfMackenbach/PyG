@@ -14,6 +14,7 @@ class gist_sim:
     gist_sim = G_functions.gist_sim(filename='.../GIST.txt')
     This creates a simulation object. This object various attributes:
     sim.
+    - txt_file      : The full txt file
     - s0            : Normalized psi coordinate
     - alpha0        : Alpha coordinate
     - minor_radius  : Minor radius
@@ -61,9 +62,7 @@ class gist_sim:
     # Entire init class contains all information in txt file,
     # only extra is a z-coordinate
     def __init__(self, filename='GIST.txt'):
-        """
 
-        """
         # Import entire txt file and assign to self
         txt_RGX       = (open(filename, 'r')).read()
         self.txt_file = txt_RGX
@@ -246,8 +245,6 @@ class gist_sim:
 
 
 
-
-
 class GENE_nrg:
     """
     Class that accesses the GENE nrg data in a more pythonic way.
@@ -325,3 +322,169 @@ class GENE_nrg:
         arr_full        = file_nrg.loc[:,"PiEM"].to_numpy()
         arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
         self.PiEM       = arr_split
+
+
+
+
+class GENE_parameters:
+    """
+    Class that accesses the GENE parameters data in a more pythonic way.
+    Invoke an element of the class as follows:
+    GENE_parameters = G_functions.GENE_parameters(filename='.../parameters.txt')
+    This creates an parameters object. This object various attributes:
+    GENE_parameters.
+    - txt_file          : the entire txt file
+    - s_names           : array with names of species
+    - s_omn             : array with normalized density gradients of species
+    - s_omt             : array with normalized temperature gradients of species
+    - kymin             : value of smallest y-mode. Determines box-size in y
+    - nexc              : int which determines box size in x direction.
+                          needed for parallel boundary condition in GENE.
+    """
+    def __init__(self, filename='parameters.txt'):
+        # Import entire txt file and assign to self
+        txt_RGX_full    = (open(filename, 'r')).read()
+        self.txt_file   = txt_RGX_full
+        # Let's remove whitespace so RGX is easier
+        txt_RGX         = txt_RGX_full.replace(" ", "")
+
+
+
+        # Import names
+        pattern         = re.compile(r"""(?<=name=)(.*$)""",re.MULTILINE)
+        x = (re.findall(pattern, txt_RGX))
+        for idx, string in enumerate(x):
+            x[idx]          = string.replace("'","")
+        self.s_names    = x
+
+        # Import omn
+        pattern         = re.compile(r"""(?<=omn=)(.*$)""",re.MULTILINE)
+        x               = (re.findall(pattern, txt_RGX))
+        x               = [float(ele) for ele in x]
+        self.s_omn      = x
+
+        # Import omt
+        pattern         = re.compile(r"""(?<=omt=)(.*$)""",re.MULTILINE)
+        x               = (re.findall(pattern, txt_RGX))
+        x               = [float(ele) for ele in x]
+        self.s_omt      = x
+
+        # Import kymin
+        pattern         = re.compile(r"""(?<=kymin=)(.*$)""",re.MULTILINE)
+        x               = (re.findall(pattern, txt_RGX)[0])
+        x               = float(x)
+        self.kymin      = x
+
+        # Import nexc
+        pattern         = re.compile(r"""(?<=nexc=)(.*$)""",re.MULTILINE)
+        x               = (re.findall(pattern, txt_RGX)[0])
+        x               = int(float(x))
+        self.nexc       = x
+
+
+
+
+class GENE_gist:
+    """
+    Class that accesses the GENE gist data in a more pythonic way.
+    Invoke an element of the class as follows:
+    GENE_gist = G_functions.GENE_gist(filename='.../GENE_gist.txt')
+    This creates a GENE_gist object. This object has various attributes:
+    GENE_gist.
+    - txt_file          : the entire txt file
+    - gridpoints        : the number of gridpoints
+    - q0                : value of safety factor
+    - shat              : shear at location
+    - s0                : value of s at fieldline
+    - minor_r           : minor_r
+    - trpeps            : r/a=epsilon at fieldline
+    - beta              : plasma beta
+    - Lref              : Lref which is passed. Doesn't matter as minor_r is
+                          passed for Lref. But still it's in the data, so let's
+                          read it
+    - Bref              : reference magnetic field value
+    - my_dpdx           : assumed pressure gradient in calculating the
+                          MHD-equilibrium
+    - functions         : matrix of all functions outputted by GENE_gist
+    """
+    def __init__(self, filename):
+        # Import entire txt file and assign to self
+        txt_RGX_full    = (open(filename, 'r')).read()
+        self.txt_file   = txt_RGX_full
+        # Let's remove whitespace so RGX is easier
+        txt_RGX_flat    = txt_RGX_full.replace(" ", "")
+
+
+
+        # Import gridpoints
+        pattern         = re.compile(r"""(?<=gridpoints=)(.*$)""",re.MULTILINE)
+        x               = (re.findall(pattern, txt_RGX_flat)[0])
+        x               = int(float(x))
+        self.gridpoints = x
+
+        # Import q0
+        pattern         = re.compile(r"""(?<=q0=)(.*$)""",re.MULTILINE)
+        x               = (re.findall(pattern, txt_RGX_flat)[0])
+        x               = float(x)
+        self.q0 = x
+
+        # Import shat
+        pattern         = re.compile(r"""(?<=shat=)(.*$)""",re.MULTILINE)
+        x               = (re.findall(pattern, txt_RGX_flat)[0])
+        x               = float(x)
+        self.shat = x
+
+        # Import s0
+        pattern         = re.compile(r"""(?<=s0=)(.*$)""",re.MULTILINE)
+        x               = (re.findall(pattern, txt_RGX_flat)[0])
+        x               = float(x)
+        self.s0 = x
+
+        # Import minor_r
+        pattern         = re.compile(r"""(?<=minor_r=)(.*$)""",re.MULTILINE)
+        x               = (re.findall(pattern, txt_RGX_flat)[0])
+        x               = float(x)
+        self.minor_r    = x
+
+        # Import trpeps
+        pattern         = re.compile(r"""(?<=trpeps=)(.*$)""",re.MULTILINE)
+        x               = (re.findall(pattern, txt_RGX_flat)[0])
+        x               = float(x)
+        self.trpeps     = x
+
+        # Import beta
+        pattern         = re.compile(r"""(?<=beta=)(.*$)""",re.MULTILINE)
+        x               = (re.findall(pattern, txt_RGX_flat)[0])
+        x               = float(x)
+        self.beta       = x
+
+        # Import Lref
+        pattern         = re.compile(r"""(?<=Lref=)(.*$)""",re.MULTILINE)
+        x               = (re.findall(pattern, txt_RGX_flat)[0])
+        x               = float(x)
+        self.Lref       = x
+
+        # Import Bref
+        pattern         = re.compile(r"""(?<=Bref=)(.*$)""",re.MULTILINE)
+        x               = (re.findall(pattern, txt_RGX_flat)[0])
+        x               = float(x)
+        self.Bref       = x
+
+        # Import my_dpdx
+        pattern         = re.compile(r"""(?<=my_dpdx=)(.*$)""",re.MULTILINE)
+        x               = (re.findall(pattern, txt_RGX_flat)[0])
+        x               = float(x)
+        self.my_dpdx    = x
+
+        # Import all columns
+        pattern_functions  = re.compile(r"""(?<=\/)(?s)(.*$)""",flags=re.MULTILINE|re.DOTALL)
+        x = (re.findall(pattern_functions, self.txt_file)[0])
+        x_split = x.split('\n ')
+        l = []
+        for item in x_split:
+            subl = []
+            for num in item.split():
+                subl.append(float(num))
+            l.append(subl)
+        l_new = list2 = [x for x in l if x != []]
+        self.functions = np.asarray(l_new)
