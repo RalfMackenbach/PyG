@@ -1,8 +1,9 @@
 import re
-import numpy as np
-from scipy.interpolate import interp1d
-from scipy.integrate import cumtrapz
-import pandas as pd
+import os
+import numpy            as      np
+from scipy.interpolate  import  interp1d
+from scipy.integrate    import  cumtrapz
+import pandas           as      pd
 
 
 
@@ -25,7 +26,7 @@ class gist_sim:
     - gridpoints    : Number of gridpoints
     - n_pol         : Number of poloidal turns
     - z_coord       : z (theta) coordinate of the various functions
-    - l_coord       : The l coordinate of various functions
+    - l_hat         : The normalized l coordinate of various functions
     - functions     : A matrix of all functions outputted by GIST,
                       columns correspond to a different quantities
     - B_arr         : Array containing magnetic field data,
@@ -161,8 +162,20 @@ class gist_sim:
 
 
         # Create z_coordinate
-        self.z_coord   = np.linspace(-np.pi*self.n_pol,np.pi*self.n_pol,num=self.gridpoints)
+        self.z_coord    = np.linspace(-np.pi*self.n_pol,np.pi*self.n_pol,num=self.gridpoints)
 
+
+        # Calculate normalized arclength
+        B_norm          = self.functions[:,3]
+        jac             = self.functions[:,4]
+        integrand       = np.asarray((B_norm)/jac)
+        # Straightforward cumtrapz for integral
+        l_arr           = cumtrapz(integrand,self.z_coord,initial=0)
+        # Set z=0 => l=0
+        l_interp = interp1d(self.z_coord, l_arr,kind='linear')
+        l_offset = l_interp(0)
+        # set to self
+        self.l_hat = l_arr
 
 
 
@@ -247,9 +260,9 @@ class gist_sim:
 
 class GENE_nrg:
     """
-    Class that accesses the GENE nrg data in a more pythonic way.
+    Class that accesses all GENE nrg data in a more pythonic way.
     Invoke an element of the class as follows:
-    GENE_nrg = G_functions.GENE_nrg(filename='.../nrg.txt')
+    GENE_nrg = G_functions.GENE_nrg(dir_path='sims/sim1/')
     This creates an nrg object. This object various attributes:
     GENE_nrg.
     - n_species         : Number of species
@@ -265,63 +278,81 @@ class GENE_nrg:
     - PiES              : [n_species,:] array with PiES
     - PiEM              : [n_species,:] array with PiEM
     """
-    def __init__(self, filename='nrg.txt'):
-        # We use pandas to easily import all data
-        col_names   =  ["n1","u1","T1par","T1perp","GammaES",
-                        "GammaEM","QES","QEM","PiES","PiEM"]
-        file_full   = pd.read_csv(filename, names=col_names, sep="\s+")
-        # Separate out all columns with no NaN
-        file_nrg    = file_full.dropna()
-        file_times  = file_full.drop(file_nrg.index)
-        # Calculate number of rows in both files
-        n_times         = len(file_times)
-        n_nrgs          = len(file_nrg)
-        # We can now calculate the number of species
-        n_species       = int(n_nrgs/n_times)
-        self.n_species  = n_species
-        # Let's assign times to self
-        self.times      = file_times.loc[:,"n1"].to_numpy()
-        # And now we import all variables
-        # n1
-        arr_full        = file_nrg.loc[:,"n1"].to_numpy()
-        arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-        self.n1         = arr_split
-        # u1
-        arr_full        = file_nrg.loc[:,"u1"].to_numpy()
-        arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-        self.u1         = arr_split
-        # T1par
-        arr_full        = file_nrg.loc[:,"T1par"].to_numpy()
-        arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-        self.T1par      = arr_split
-        # T1perp
-        arr_full        = file_nrg.loc[:,"T1perp"].to_numpy()
-        arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-        self.T1perp     = arr_split
-        # GammaES
-        arr_full        = file_nrg.loc[:,"GammaES"].to_numpy()
-        arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-        self.GammaES    = arr_split
-        # GammaEM
-        arr_full        = file_nrg.loc[:,"GammaEM"].to_numpy()
-        arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-        self.GammaEM    = arr_split
-        # QES
-        arr_full        = file_nrg.loc[:,"QES"].to_numpy()
-        arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-        self.QES        = arr_split
-        # QEM
-        arr_full        = file_nrg.loc[:,"QEM"].to_numpy()
-        arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-        self.QEM        = arr_split
-        # PiES
-        arr_full        = file_nrg.loc[:,"PiES"].to_numpy()
-        arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-        self.PiES       = arr_split
-        # PiEM
-        arr_full        = file_nrg.loc[:,"PiEM"].to_numpy()
-        arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-        self.PiEM       = arr_split
+    def __init__(self, dir_path=os.getcwd()):
+        # Import all nrg files
+        filenames   = [f for f in listdir(dir_path) if isfile(join(dir_path,f))]
+        nrg_idxs    = [i for i, s in enumerate(mylist) if 'nrg_' in s]
+
+        # Make empty lists
+        self.n_species  = []
+        self.times      = []
+        self.n1         = []
+        self.u1         = []
+        self.T1par      = []
+        self.T1perp     = []
+        self.GammaES    = []
+        self.GammaEM    = []
+        self.QES        = []
+        self.QEM        = []
+        self.PiES       = []
+        self.PiEM       = []
+        for filename in filenames:
+            # We use pandas to easily import all data
+            col_names   =  ["n1","u1","T1par","T1perp","GammaES",
+                            "GammaEM","QES","QEM","PiES","PiEM"]
+            file_full   = pd.read_csv(filename, names=col_names, sep="\s+")
+            # Separate out all columns with no NaN
+            file_nrg    = file_full.dropna()
+            file_times  = file_full.drop(file_nrg.index)
+            # Calculate number of rows in both files
+            n_times         = len(file_times)
+            n_nrgs          = len(file_nrg)
+            # We can now calculate the number of species
+            n_species       = int(n_nrgs/n_times)
+            self.n_species  = (self.n_species).append(n_species)
+            # Let's assign times to self
+            self.times      = (self.times).append(file_times.loc[:,"n1"].to_numpy())
+            # And now we import all variables
+            # n1
+            arr_full        = file_nrg.loc[:,"n1"].to_numpy()
+            arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
+            self.n1         = (self.n1).append(arr_split)
+            # u1
+            arr_full        = file_nrg.loc[:,"u1"].to_numpy()
+            arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
+            self.u1         = (self.u1).append(arr_split)
+            # T1par
+            arr_full        = file_nrg.loc[:,"T1par"].to_numpy()
+            arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
+            self.T1par      = (self.T1par).append(arr_split)
+            # T1perp
+            arr_full        = file_nrg.loc[:,"T1perp"].to_numpy()
+            arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
+            self.T1perp     = (self.T1perp).append(arr_split)
+            # GammaES
+            arr_full        = file_nrg.loc[:,"GammaES"].to_numpy()
+            arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
+            self.GammaES    = (self.GammaES).append(arr_split)
+            # GammaEM
+            arr_full        = file_nrg.loc[:,"GammaEM"].to_numpy()
+            arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
+            self.GammaEM    = (self.GammaEM).append(arr_split)
+            # QES
+            arr_full        = file_nrg.loc[:,"QES"].to_numpy()
+            arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
+            self.QES        = (self.QES).append(arr_split)
+            # QEM
+            arr_full        = file_nrg.loc[:,"QEM"].to_numpy()
+            arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
+            self.QEM        = (self.QEM).append(arr_split)
+            # PiES
+            arr_full        = file_nrg.loc[:,"PiES"].to_numpy()
+            arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
+            self.PiES       = (self.PiES).append(arr_split)
+            # PiEM
+            arr_full        = file_nrg.loc[:,"PiEM"].to_numpy()
+            arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
+            self.PiEM       = (self.PiEM).append(arr_split)
 
 
 
@@ -470,11 +501,12 @@ class GENE_gist:
         x               = float(x)
         self.Bref       = x
 
-        # Import my_dpdx
-        pattern         = re.compile(r"""(?<=my_dpdx=)(.*$)""",re.MULTILINE)
-        x               = (re.findall(pattern, txt_RGX_flat)[0])
-        x               = float(x)
-        self.my_dpdx    = x
+        # Not all geometry files have this, so let's ignore
+        # # Import my_dpdx
+        # pattern         = re.compile(r"""(?<=my_dpdx=)(.*$)""",re.MULTILINE)
+        # x               = (re.findall(pattern, txt_RGX_flat)[0])
+        # x               = float(x)
+        # self.my_dpdx    = x
 
         # Import all columns
         pattern_functions  = re.compile(r"""(?<=\/)(?s)(.*$)""",flags=re.MULTILINE|re.DOTALL)
