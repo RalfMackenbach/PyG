@@ -303,7 +303,8 @@ class GENE_nrg:
         QEM_list        = []
         PiES_list       = []
         PiEM_list       = []
-        for filename in nrg_list:
+        for nrg_name in nrg_list:
+            filename    = dir_path + '/' + nrg_name
             # We use pandas to easily import all data
             col_names   =  ["n1","u1","T1par","T1perp","GammaES",
                             "GammaEM","QES","QEM","PiES","PiEM"]
