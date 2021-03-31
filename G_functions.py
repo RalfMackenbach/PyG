@@ -264,7 +264,8 @@ class GENE_nrg:
     """
     Class that accesses all GENE nrg data in a more pythonic way.
     Invoke an element of the class as follows:
-    GENE_nrg = G_functions.GENE_nrg(dir_path='sims/sim1/')
+    GENE_nrg = G_functions.GENE_nrg(dir_path='sims/sim1')
+    Here sim1 is the dir containing all nrg files
     This creates an nrg object. This object various attributes:
     GENE_nrg.
     - n_species         : Number of species
@@ -280,25 +281,29 @@ class GENE_nrg:
     - PiES              : [n_species,:] array with PiES
     - PiEM              : [n_species,:] array with PiEM
     """
-    def __init__(self, dir_path=os.getcwd()):
-        # Import all nrg files
+    def __init__(self, dir_path):
+        # Import all nrg files and order
         filenames   = [f for f in listdir(dir_path) if isfile(join(dir_path,f))]
-        nrg_idxs    = [i for i, s in enumerate(mylist) if 'nrg_' in s]
+        nrg_idxs    = [i for i, s in enumerate(filenames) if 'nrg_' in s]
+        nrg_list    = [filenames[i] for i in nrg_idxs]
+        nrg_list.sort(key= lambda x: int(x.split('_')[1].split('.')[0]))
+
+
 
         # Make empty lists
-        self.n_species  = []
-        self.times      = []
-        self.n1         = []
-        self.u1         = []
-        self.T1par      = []
-        self.T1perp     = []
-        self.GammaES    = []
-        self.GammaEM    = []
-        self.QES        = []
-        self.QEM        = []
-        self.PiES       = []
-        self.PiEM       = []
-        for filename in filenames:
+        n_species_list  = []
+        times_list      = []
+        n1_list         = []
+        u1_list         = []
+        T1par_list      = []
+        T1perp_list     = []
+        GammaES_list    = []
+        GammaEM_list    = []
+        QES_list        = []
+        QEM_list        = []
+        PiES_list       = []
+        PiEM_list       = []
+        for filename in nrg_list:
             # We use pandas to easily import all data
             col_names   =  ["n1","u1","T1par","T1perp","GammaES",
                             "GammaEM","QES","QEM","PiES","PiEM"]
@@ -311,51 +316,64 @@ class GENE_nrg:
             n_nrgs          = len(file_nrg)
             # We can now calculate the number of species
             n_species       = int(n_nrgs/n_times)
-            self.n_species  = (self.n_species).append(n_species)
-            # Let's assign times to self
-            self.times      = (self.times).append(file_times.loc[:,"n1"].to_numpy())
+            (n_species_list).append(n_species)
+            # Append
+            (times_list).append(file_times.loc[:,"n1"].to_numpy())
             # And now we import all variables
             # n1
             arr_full        = file_nrg.loc[:,"n1"].to_numpy()
             arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-            self.n1         = (self.n1).append(arr_split)
+            (n1_list).append(arr_split)
             # u1
             arr_full        = file_nrg.loc[:,"u1"].to_numpy()
             arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-            self.u1         = (self.u1).append(arr_split)
+            (u1_list).append(arr_split)
             # T1par
             arr_full        = file_nrg.loc[:,"T1par"].to_numpy()
             arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-            self.T1par      = (self.T1par).append(arr_split)
+            (T1par_list).append(arr_split)
             # T1perp
             arr_full        = file_nrg.loc[:,"T1perp"].to_numpy()
             arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-            self.T1perp     = (self.T1perp).append(arr_split)
+            (T1perp_list).append(arr_split)
             # GammaES
             arr_full        = file_nrg.loc[:,"GammaES"].to_numpy()
             arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-            self.GammaES    = (self.GammaES).append(arr_split)
+            (GammaES_list).append(arr_split)
             # GammaEM
             arr_full        = file_nrg.loc[:,"GammaEM"].to_numpy()
             arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-            self.GammaEM    = (self.GammaEM).append(arr_split)
+            (GammaEM_list).append(arr_split)
             # QES
             arr_full        = file_nrg.loc[:,"QES"].to_numpy()
             arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-            self.QES        = (self.QES).append(arr_split)
+            (QES_list).append(arr_split)
             # QEM
             arr_full        = file_nrg.loc[:,"QEM"].to_numpy()
             arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-            self.QEM        = (self.QEM).append(arr_split)
+            (QEM_list).append(arr_split)
             # PiES
             arr_full        = file_nrg.loc[:,"PiES"].to_numpy()
             arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-            self.PiES       = (self.PiES).append(arr_split)
+            (PiES_list).append(arr_split)
             # PiEM
             arr_full        = file_nrg.loc[:,"PiEM"].to_numpy()
             arr_split       = np.transpose(np.asarray(np.split(arr_full, n_nrgs/n_species)))
-            self.PiEM       = (self.PiEM).append(arr_split)
+            (PiEM_list).append(arr_split)
 
+        # assign to self
+        self.n_species  = np.hstack(n_species_list)[0]
+        self.times      = np.hstack(times_list)
+        self.n1         = np.hstack(n1_list)
+        self.u1         = np.hstack(u1_list)
+        self.T1par      = np.hstack(T1par_list)
+        self.T1perp     = np.hstack(T1perp_list)
+        self.GammaES    = np.hstack(GammaES_list)
+        self.GammaEM    = np.hstack(GammaEM_list)
+        self.QES        = np.hstack(QES_list)
+        self.QEM        = np.hstack(QEM_list)
+        self.PiES       = np.hstack(PiES_list)
+        self.PiEM       = np.hstack(PiEM_list)
 
 
 
