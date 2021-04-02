@@ -177,7 +177,7 @@ class gist_sim:
         l_interp = interp1d(self.z_coord, l_arr,kind='linear')
         l_offset = l_interp(0)
         # set to self
-        self.l_hat = l_arr
+        self.l_hat = l_arr - l_offset
 
 
 
